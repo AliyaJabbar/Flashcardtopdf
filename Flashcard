@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcard to PDF Generator</title>
+    
+    <!-- jsPDF library from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 32px;
+            font-size: 1rem;
+        }
+
+        .input-section {
+            margin-bottom: 32px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .download-btn {
+            background: #27ae60;
+            margin-top: 20px;
+        }
+
+        .download-btn:hover {
+            background: #229954;
+        }
+
+        .download-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .cards-preview {
+            margin-top: 40px;
+        }
+
+        .cards-preview h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .card-item {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .card-number {
+            font-weight: 700;
+            color: #3498db;
+            margin-bottom: 8px;
+        }
+
+        .card-content {
+            margin-bottom: 8px;
+        }
+
+        .card-label {
+            font-weight: 600;
+            color: #7f8c8d;
+            font-size: 0.875rem;
+        }
+
+        .card-text {
+            margin-top: 4px;
+            color: #2c3e50;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #95a5a6;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+            padding: 8px 16px;
+            font-size: 0.875rem;
+            margin-top: 8px;
+        }
+
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 24px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Flashcard to PDF Generator</h1>
+        <p class="subtitle">Create interview-ready flashcards in seconds</p>
+
+        <div class="input-section">
+            <div style="margin-bottom: 20px;">
+                <label for="frontText">Front of Card (Question)</label>
+                <textarea id="frontText" placeholder="Enter your question here..."></textarea>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label for="backText">Back of Card (Answer)</label>
+                <textarea id="backText" placeholder="Enter your answer here..."></textarea>
+            </div>
+
+            <button id="addCardBtn">Add Card</button>
+        </div>
+
+        <div class="cards-preview">
+            <h2>Your Flashcards (<span id="cardCount">0</span>)</h2>
+            <div class="info-box">
+                💡 <strong>Tip:</strong> Your flashcards are stored locally in your browser. Click "Download PDF" to save them to your device.
+            </div>
+            <div id="cardsList">
+                <div class="empty-state">No cards added yet. Add your first card above!</div>
+            </div>
+            <button id="downloadBtn" class="download-btn" disabled>Download PDF</button>
+            <div id="successMessage" class="success-message">
+                ✓ PDF generated successfully! Check your Downloads folder.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Store all flashcards in memory
+        let flashcards = [];
+
+        // Get DOM elements
+        const frontTextarea = document.getElementById('frontText');
+        const backTextarea = document.getElementById('backText');
+        const addCardBtn = document.getElementById('addCardBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const cardsList = document.getElementById('cardsList');
+        const cardCount = document.getElementById('cardCount');
+
+        // Add card function
+        function addCard() {
+            const front = frontTextarea.value.trim();
+            const back = backTextarea.value.trim();
+
+            // Validate inputs
+            if (!front || !back) {
+                alert('Please fill in both the front and back of the card.');
+                return;
+            }
+
+            // Add to array
+            flashcards.push({ front, back });
+
+            // Clear textareas
+            frontTextarea.value = '';
+            backTextarea.value = '';
+
+            // Update UI
+            renderCards();
+            
+            // Focus back on front textarea for quick entry
+            frontTextarea.focus();
+        }
+
+        // Render all cards to the preview list
+        function renderCards() {
+            cardCount.textContent = flashcards.length;
+
+            if (flashcards.length === 0) {
+                cardsList.innerHTML = '<div class="empty-state">No cards added yet. Add your first card above!</div>';
+                downloadBtn.disabled = true;
+                return;
+            }
+
+            // Enable download button
+            downloadBtn.disabled = false;
+
+            // Build HTML for all cards
+            let html = '';
+            flashcards.forEach((card, index) => {
+                html += `
+                    <div class="card-item">
+                        <div class="card-number">Card ${index + 1}</div>
+                        <div class="card-content">
+                            <div class="card-label">Front:</div>
+                            <div class="card-text">${escapeHtml(card.front)}</div>
+                        </div>
+                        <div class="card-content">
+                            <div class="card-label">Back:</div>
+                            <div class="card-text">${escapeHtml(card.back)}</div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteCard(${index})">Delete</button>
+                    </div>
+                `;
+            });
+
+            cardsList.innerHTML = html;
+        }
+
+        // Delete a card
+        function deleteCard(index) {
+            flashcards.splice(index, 1);
+            renderCards();
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Generate and download PDF
+        function generatePDF() {
+            try {
+                // Show loading state
+                downloadBtn.disabled = true;
+                downloadBtn.textContent = 'Generating PDF...';
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const margin = 20;
+                const maxWidth = pageWidth - (2 * margin);
+
+                flashcards.forEach((card, index) => {
+                    // Front of card (Question)
+                    if (index > 0) {
+                        doc.addPage();
+                    }
+
+                    doc.setFontSize(16);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Question:', margin, 30);
+
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'normal');
+                    const frontLines = doc.splitTextToSize(card.front, maxWidth);
+                    doc.text(frontLines, margin, 45);
+
+                    // Footer
+                    doc.setFontSize(8);
+                    doc.setTextColor(150);
+                    doc.text("Created using Aliya's Flashcard Tool", pageWidth / 2, pageHeight - 10, { align: 'center' });
+                    doc.setTextColor(0);
+
+                    // Back of card (Answer)
+                    doc.addPage();
+
+                    doc.setFontSize(16);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Answer:', margin, 30);
+
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'normal');
+                    const backLines = doc.splitTextToSize(card.back, maxWidth);
+                    doc.text(backLines, margin, 45);
+
+                    // Footer
+                    doc.setFontSize(8);
+                    doc.setTextColor(150);
+                    doc.text("Created using Aliya's Flashcard Tool", pageWidth / 2, pageHeight - 10, { align: 'center' });
+                    doc.setTextColor(0);
+                });
+
+                // Generate blob and create download link
+                const pdfBlob = doc.output('blob');
+                const url = URL.createObjectURL(pdfBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'my-flashcards.pdf';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Clean up the URL object
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+
+                // Show success message
+                const successMessage = document.getElementById('successMessage');
+                successMessage.classList.add('show');
+                setTimeout(() => successMessage.classList.remove('show'), 5000);
+
+                // Reset button state
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = 'Download PDF';
+
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('There was an error generating the PDF. Please try again.');
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = 'Download PDF';
+            }
+        }
+
+        // Event listeners
+        addCardBtn.addEventListener('click', addCard);
+        downloadBtn.addEventListener('click', generatePDF);
+
+        // Allow Enter key to add card (Ctrl+Enter or Cmd+Enter)
+        frontTextarea.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                addCard();
+            }
+        });
+
+        backTextarea.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                addCard();
+            }
+        });
+    </script>
+</body>
+</html>
