@@ -106,6 +106,21 @@
             cursor: not-allowed;
         }
 
+        .study-btn {
+            background: #9b59b6;
+            margin-top: 20px;
+            margin-left: 10px;
+        }
+
+        .study-btn:hover {
+            background: #8e44ad;
+        }
+
+        .study-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
         .success-message {
             background: #d4edda;
             border: 1px solid #c3e6cb;
@@ -186,6 +201,133 @@
             background: #c0392b;
         }
 
+        /* Study Mode Styles */
+        .study-mode {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .study-mode.active {
+            display: flex;
+        }
+
+        .flashcard-viewer {
+            background: white;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 100%;
+            padding: 40px;
+            position: relative;
+        }
+
+        .close-study {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-study:hover {
+            background: #c0392b;
+        }
+
+        .card-progress {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .flashcard {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 300px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s;
+            text-align: center;
+            font-size: 1.3rem;
+            line-height: 1.6;
+        }
+
+        .flashcard:hover {
+            transform: translateY(-5px);
+        }
+
+        .flashcard.flipped {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .card-side-label {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 14px 20px;
+            font-size: 1rem;
+            background: #3498db;
+        }
+
+        .nav-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .flip-hint {
+            text-align: center;
+            color: #7f8c8d;
+            margin-top: 15px;
+            font-size: 0.85rem;
+        }
+
+        .shuffle-btn {
+            background: #f39c12;
+            margin-right: 10px;
+        }
+
+        .shuffle-btn:hover {
+            background: #e67e22;
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 24px;
@@ -197,6 +339,22 @@
 
             button {
                 width: 100%;
+                margin-left: 0 !important;
+                margin-top: 10px;
+            }
+
+            .flashcard-viewer {
+                padding: 20px;
+            }
+
+            .flashcard {
+                min-height: 250px;
+                font-size: 1.1rem;
+                padding: 30px;
+            }
+
+            .navigation {
+                flex-direction: column;
             }
         }
     </style>
@@ -223,11 +381,13 @@
         <div class="cards-preview">
             <h2>Your Flashcards (<span id="cardCount">0</span>)</h2>
             <div class="info-box">
-                💡 <strong>Tip:</strong> Your flashcards are stored locally in your browser. Click "Download PDF" to save them to your device.
+                💡 <strong>Tip:</strong> Click "Study Mode" to review cards interactively, or "Download PDF" to save them to your device.
             </div>
             <div id="cardsList">
                 <div class="empty-state">No cards added yet. Add your first card above!</div>
             </div>
+            <button id="shuffleBtn" class="shuffle-btn" disabled>🔀 Shuffle Cards</button>
+            <button id="studyBtn" class="study-btn" disabled>📚 Study Mode</button>
             <button id="downloadBtn" class="download-btn" disabled>Download PDF</button>
             <div id="successMessage" class="success-message">
                 ✓ PDF generated successfully! Check your Downloads folder.
@@ -235,17 +395,42 @@
         </div>
     </div>
 
+    <!-- Study Mode Modal -->
+    <div id="studyMode" class="study-mode">
+        <div class="flashcard-viewer">
+            <button class="close-study" onclick="closeStudyMode()">×</button>
+            <div class="card-progress">
+                Card <span id="currentCard">1</span> of <span id="totalCards">0</span>
+            </div>
+            <div id="flashcard" class="flashcard" onclick="flipCard()">
+                <span class="card-side-label" id="sideLabel">Question</span>
+                <div id="cardContent"></div>
+            </div>
+            <div class="flip-hint">👆 Click card to flip • Use arrow keys to navigate • Space to flip</div>
+            <div class="navigation">
+                <button class="nav-btn" id="prevBtn" onclick="previousCard()">← Previous</button>
+                <button class="nav-btn" id="nextBtn" onclick="nextCard()">Next →</button>
+            </div>
+            <button class="download-btn" style="width: 100%; margin-top: 15px;" onclick="downloadCurrentCard()">💾 Download This Card as PDF</button>
+        </div>
+    </div>
+
     <script>
         // Store all flashcards in memory
         let flashcards = [];
+        let currentCardIndex = 0;
+        let isFlipped = false;
 
         // Get DOM elements
         const frontTextarea = document.getElementById('frontText');
         const backTextarea = document.getElementById('backText');
         const addCardBtn = document.getElementById('addCardBtn');
         const downloadBtn = document.getElementById('downloadBtn');
+        const studyBtn = document.getElementById('studyBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
         const cardsList = document.getElementById('cardsList');
         const cardCount = document.getElementById('cardCount');
+        const studyMode = document.getElementById('studyMode');
 
         // Add card function
         function addCard() {
@@ -279,11 +464,15 @@
             if (flashcards.length === 0) {
                 cardsList.innerHTML = '<div class="empty-state">No cards added yet. Add your first card above!</div>';
                 downloadBtn.disabled = true;
+                studyBtn.disabled = true;
+                shuffleBtn.disabled = true;
                 return;
             }
 
-            // Enable download button
+            // Enable buttons
             downloadBtn.disabled = false;
+            studyBtn.disabled = false;
+            shuffleBtn.disabled = false;
 
             // Build HTML for all cards
             let html = '';
@@ -313,12 +502,96 @@
             renderCards();
         }
 
+        // Shuffle cards
+        function shuffleCards() {
+            for (let i = flashcards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [flashcards[i], flashcards[j]] = [flashcards[j], flashcards[i]];
+            }
+            renderCards();
+            alert('Cards shuffled! 🔀');
+        }
+
         // Escape HTML to prevent XSS
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // Study Mode Functions
+        function openStudyMode() {
+            if (flashcards.length === 0) return;
+            
+            currentCardIndex = 0;
+            isFlipped = false;
+            studyMode.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            showCard();
+        }
+
+        function closeStudyMode() {
+            studyMode.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function showCard() {
+            const card = flashcards[currentCardIndex];
+            const cardElement = document.getElementById('flashcard');
+            const contentElement = document.getElementById('cardContent');
+            const sideLabel = document.getElementById('sideLabel');
+            
+            document.getElementById('currentCard').textContent = currentCardIndex + 1;
+            document.getElementById('totalCards').textContent = flashcards.length;
+            
+            if (isFlipped) {
+                contentElement.textContent = card.back;
+                sideLabel.textContent = 'Answer';
+                cardElement.classList.add('flipped');
+            } else {
+                contentElement.textContent = card.front;
+                sideLabel.textContent = 'Question';
+                cardElement.classList.remove('flipped');
+            }
+
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = currentCardIndex === 0;
+            document.getElementById('nextBtn').disabled = currentCardIndex === flashcards.length - 1;
+        }
+
+        function flipCard() {
+            isFlipped = !isFlipped;
+            showCard();
+        }
+
+        function nextCard() {
+            if (currentCardIndex < flashcards.length - 1) {
+                currentCardIndex++;
+                isFlipped = false;
+                showCard();
+            }
+        }
+
+        function previousCard() {
+            if (currentCardIndex > 0) {
+                currentCardIndex--;
+                isFlipped = false;
+                showCard();
+            }
+        }
+
+        // Keyboard shortcuts for study mode
+        document.addEventListener('keydown', (e) => {
+            if (!studyMode.classList.contains('active')) return;
+            
+            if (e.key === 'ArrowRight') nextCard();
+            if (e.key === 'ArrowLeft') previousCard();
+            if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                flipCard();
+            }
+            if (e.key === 'Escape') closeStudyMode();
+        });
 
         // Generate and download PDF
         function generatePDF() {
@@ -405,9 +678,78 @@
             }
         }
 
+        // Download current card in study mode
+        function downloadCurrentCard() {
+            try {
+                const card = flashcards[currentCardIndex];
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const margin = 20;
+                const maxWidth = pageWidth - (2 * margin);
+
+                // Front of card (Question)
+                doc.setFontSize(16);
+                doc.setFont(undefined, 'bold');
+                doc.text('Question:', margin, 30);
+
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'normal');
+                const frontLines = doc.splitTextToSize(card.front, maxWidth);
+                doc.text(frontLines, margin, 45);
+
+                // Footer
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text("Created using Aliya's Flashcard Tool", pageWidth / 2, pageHeight - 10, { align: 'center' });
+                doc.setTextColor(0);
+
+                // Back of card (Answer)
+                doc.addPage();
+
+                doc.setFontSize(16);
+                doc.setFont(undefined, 'bold');
+                doc.text('Answer:', margin, 30);
+
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'normal');
+                const backLines = doc.splitTextToSize(card.back, maxWidth);
+                doc.text(backLines, margin, 45);
+
+                // Footer
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text("Created using Aliya's Flashcard Tool", pageWidth / 2, pageHeight - 10, { align: 'center' });
+                doc.setTextColor(0);
+
+                // Generate blob and create download link
+                const pdfBlob = doc.output('blob');
+                const url = URL.createObjectURL(pdfBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `flashcard-${currentCardIndex + 1}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Clean up the URL object
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+
+                alert('✓ Card downloaded successfully!');
+
+            } catch (error) {
+                console.error('Error downloading card:', error);
+                alert('There was an error downloading the card. Please try again.');
+            }
+        }
+
         // Event listeners
         addCardBtn.addEventListener('click', addCard);
         downloadBtn.addEventListener('click', generatePDF);
+        studyBtn.addEventListener('click', openStudyMode);
+        shuffleBtn.addEventListener('click', shuffleCards);
 
         // Allow Enter key to add card (Ctrl+Enter or Cmd+Enter)
         frontTextarea.addEventListener('keydown', (e) => {
